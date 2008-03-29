@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:WindowedApplication xmlns:mx="http://www.adobe.com/2006/mxml"
+	 layout="absolute" width="800" height="600" initialize="initApp();">
+	<mx:Script>
+		<![CDATA[
+		
+		// TODO :
+		// * browse
+		// * clone
+		// * add
+		// * commit 
+		
+			import chacon.utils.ByteArrayPack;
+			import chacon.git.AsGit;
+			
+			private var git:AsGit;
+			
+			public function initApp():void {
+				git = new AsGit('/Users/schacon/projects/simplegit');
+				showHead();
+			}
+			
+			public function showHead():void {
+				output.text = git.readObject(git.readGitFile(git.headRef()));
+			}
+			
+			public function runHex():void {
+				// define the ByteArray
+				var bytes:ByteArray = new ByteArray();
+				bytes.writeMultiByte(input.text, 'iso-8859-1');
+				trace("bytes length is: " +  bytes.length);    // display the length
+				var packHex:ByteArray = ByteArrayPack.packHex(bytes);
+				output.text = packHex.toString();
+				bytes = ByteArrayPack.unpackHex(packHex);
+				output2.text = bytes.toString();
+			}
+		]]>
+	</mx:Script>
+	<mx:Text id="output" x="183" y="107" text="f2"/>
+	
+</mx:WindowedApplication>
