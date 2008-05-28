@@ -1,41 +1,103 @@
 <?xml version="1.0" encoding="utf-8"?>
 <mx:WindowedApplication xmlns:mx="http://www.adobe.com/2006/mxml"
-	 layout="absolute" width="800" height="600" initialize="initApp();">
+	 layout="absolute" width="800" height="600" initialize="initApp()"
+	 verticalScrollPolicy="off"
+	 horizontalScrollPolicy="off">
+	 
+	<mx:Style source="style.css"/>
+	 
 	<mx:Script>
 		<![CDATA[
-		
+			import mx.core.UIComponent;
+			import mx.controls.Image;
+			import mx.collections.ArrayCollection;			
+			import chacon.utils.ByteArrayPack;
+			import chacon.git.*;
+			
 		// TODO :
 		// * browse
+		// * clear icon cache button
+		// * deal with pack files
+		// * cache trees and commits in sqlite
+		//
+		// * init
 		// * clone
 		// * add
 		// * commit 
 		
-			import chacon.utils.ByteArrayPack;
-			import chacon.git.AsGit;
-			
 			private var git:AsGit;
+			private var gitDir:String;
 			
 			public function initApp():void {
-				git = new AsGit('/Users/schacon/projects/simplegit');
-				showHead();
+				changeGitPath('/Users/schacon/projects/simplegit');
 			}
 			
-			public function showHead():void {
-				output.text = git.readObject(git.readGitFile(git.headRef()));
+			public function changeGitPath(path:String):void {
+				var dir:String = path;				
+				git = new AsGit(dir);
+				gitDir = dir;
 			}
 			
-			public function runHex():void {
-				// define the ByteArray
-				var bytes:ByteArray = new ByteArray();
-				bytes.writeMultiByte(input.text, 'iso-8859-1');
-				trace("bytes length is: " +  bytes.length);    // display the length
-				var packHex:ByteArray = ByteArrayPack.packHex(bytes);
-				output.text = packHex.toString();
-				bytes = ByteArrayPack.unpackHex(packHex);
-				output2.text = bytes.toString();
+			public function initLogs():void {
+				switchDir.label = gitDir;
+				//tree.directory = new File(dir);
+				fillLog();				
 			}
+			
+			public function fillLog():void {
+				var logArr:Array = git.log();
+				log.dataProvider = new ArrayCollection(logArr.reverse());
+			}
+						
+			public function switchDirectories():void {
+				viewstack.selectedIndex = 1;
+			}
+			
+			public function trySwitch():void {
+				var path:String = tree.selectedPath;
+				trace(path);
+				var selectPath:File = new File(path);
+				if(selectPath.isDirectory) {
+					if(selectPath.resolvePath('.git').exists) {
+						changeGitPath(path);
+						initLogs();
+						viewstack.selectedIndex = 0;
+					}
+				}
+			}
+			
+			public function showLog():void {
+				output.text = log.selectedItem.raw;
+				output.text += git.readObject(log.selectedItem.parents[0]).raw;
+			}
+			
 		]]>
 	</mx:Script>
-	<mx:Text id="output" x="183" y="107" text="f2"/>
+    
+	<mx:ViewStack x="0" y="0" id="viewstack" width="100%" height="100%">
+
+		<mx:VBox height="100%" width="100%" initialize="initLogs()"
+			paddingLeft="10" paddingRight="10" paddingTop="10" paddingBottom="10">
+			<mx:HBox width="100%" height="30">
+				<mx:Image source="/img/git-logo.png"/>
+				<mx:Button id="switchDir" click="switchDirectories()" label="Choose Directory"/>
+				<mx:Spacer width="100%"/>
+				<mx:Text text="Branch:"/>
+				<mx:ComboBox></mx:ComboBox>			
+			</mx:HBox>	
+			<mx:HBox width="100%" height="100%">	
+				<mx:List id="log" width="250" height="100%" click="showLog()" itemRenderer="CommitRenderer"/>
+				<mx:Text id="output" text="output" width="100%" height="100%"/>
+			</mx:HBox>
+		</mx:VBox>
+
+		<mx:TitleWindow id="dirChooser" width="100%" height="100%">
+		 	<mx:VBox  width="100%" height="100%">
+				<mx:FileSystemTree id="tree" width="100%" height="100%"/>	
+				<mx:Button id="chooseDir" click="trySwitch()" label="Choose Directory"/>				
+			</mx:VBox>
+		</mx:TitleWindow>
+	
+	</mx:ViewStack>
 	
 </mx:WindowedApplication>

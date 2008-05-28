@@ -1,6 +1,7 @@
 package chacon.git
 {
 	import chacon.utils.ByteArrayPack;
+	import chacon.git.*;
 	import flash.filesystem.File;
 	import flash.filesystem.FileStream;
 	import flash.filesystem.FileMode;
@@ -15,11 +16,23 @@ package chacon.git
 			gitDirectory = gitRepoDirectory + '/.git'
 		}
 		
-		public function readObject(sha:String):String {
+		public function log():Array {
+			var commit:AsGitCommit;
+			var sha:String = readGitFile(headRef());
+			
+			var arrCommits:Array = new Array;
+			while(sha) {
+				commit = readObject(sha) as AsGitCommit;
+				arrCommits.unshift(commit);
+				sha = commit.parents[0];
+			}
+			return arrCommits; 
+		}
+		
+		public function readObject(sha:String):Object {
 			sha = sha.substr(0, 40);
 			var dir:String = sha.substr(0,2);
 			var fname:String = sha.substr(2);
-			trace('objects/' + dir + '/' + fname);
 			var commit:ByteArray = readObjectBytes('objects/' + dir + '/' + fname);
 			commit.uncompress();
 			
@@ -41,9 +54,14 @@ package chacon.git
 					}
 				}
 			}
-			trace(header);
-			trace(body);
-			return body.toString();
+			
+			var arrHeader:Array = header.toString().split(' ');
+			if(arrHeader[0] == 'commit') {
+				var object:AsGitCommit = new AsGitCommit(sha, body.toString(), arrHeader[1]);
+				return object;
+			}
+
+			return new AsGitObject;
 		}
 		
 		public function readObjectBytes(file:String):ByteArray {

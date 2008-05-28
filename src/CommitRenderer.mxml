@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="40" 
+	horizontalScrollPolicy="off" verticalScrollPolicy="off">
+	<mx:Style source="style.css"/>
+	<mx:Script>
+		<![CDATA[
+   			import com.adobe.crypto.MD5;
+   			import chacon.utils.Callback;
+   			
+	   		public function getImageSource(email:String):String {
+				var hash:String = MD5.hash(email);
+
+				var dir:File = File.applicationStorageDirectory.resolvePath('icon_cache');
+				if(!dir.exists) { dir.createDirectory(); }
+				
+				var diskUrl:File = File.applicationStorageDirectory.resolvePath('icon_cache/' + hash + '.jpg');
+				if(!diskUrl.exists) {
+					// !! copy temp icon there !!
+					var defIcon:File = File.applicationDirectory.resolvePath('img/user.jpg');
+					defIcon.copyTo(diskUrl);
+
+					var iconUrl:String = "http://www.gravatar.com/avatar.php?size=50&gravatar_id=" + hash;
+			        var request:URLRequest = new URLRequest(iconUrl);
+		        	var loader:URLLoader = new URLLoader();
+		       		loader.dataFormat = URLLoaderDataFormat.BINARY;	
+					loader.addEventListener(Event.COMPLETE, Callback.create(onComplete, diskUrl));
+					loader.addEventListener(IOErrorEvent.IO_ERROR, handleIOError); 
+					loader.load( request );  
+				}
+				
+				return diskUrl.url;
+			}
+			
+			private function handleIOError(evt:IOErrorEvent):void {
+				trace('IO Err:' + evt.text);
+	       	}
+
+			private function onComplete(evt:Event, diskUrl:File):void
+	    	{
+	    		trace("DOWNLOADED FILE");
+	           	var loader:URLLoader = URLLoader(evt.target);
+	           	trace(loader.dataFormat);
+	           	trace(loader.bytesTotal);
+				var fileStream:FileStream = new FileStream(); 
+				fileStream.open(diskUrl, FileMode.WRITE); 
+				fileStream.writeBytes(loader.data);
+				fileStream.close();
+	    	}
+		]]>
+	</mx:Script>
+	<mx:HBox width="100%" height="100%"
+    	styleName="commit">
+	    <mx:Image width="40" height="40" source="{getImageSource(data.author.email)}"/>
+	    <mx:VBox verticalGap="0">
+	        <mx:Text text="{data.message}"/>        	
+	        <mx:Text text="by {data.author.name} on {data.author.date}" />        	
+	    </mx:VBox>
+	</mx:HBox>
+</mx:Canvas>
